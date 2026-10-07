@@ -5,6 +5,8 @@ Click a bar to see usage limits, remaining percentages, and reset times.
 
 [Download Burnbar](https://github.com/mindthefish/burnbar/releases) · [Report an issue](https://github.com/mindthefish/burnbar/issues)
 
+![Burnbar showing remaining Codex and Claude quota with example accounts](Assets/burnbar-popover.png)
+
 ## Install
 
 Requires **macOS 14 or later**. Supports Apple Silicon and Intel Macs.
