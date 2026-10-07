@@ -1,15 +1,11 @@
 # Changelog
 
-## Unreleased
-
-- Start in the menu bar without opening or restoring Settings.
-
-- Keep menu bar quota bars slim when only one or two subscriptions are active.
-
 ## 0.1.0 — 2026-10-07
 
 - Add, edit, disable, and remove Codex and Claude subscriptions in native Settings.
 - Choose subscription folders, names, indicators, and colors.
+- Start in the menu bar without opening or restoring Settings.
+- Keep menu bar quota bars at most ten points high.
 - Show remaining quota in all bars and percentages.
 - Read Codex limit-window durations from the provider response.
 - Detect updated Claude file credentials while keeping background reads noninteractive.
