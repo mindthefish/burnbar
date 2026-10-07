@@ -1,13 +1,13 @@
 #!/bin/bash
 # Usage: Scripts/build-app.sh [install-directory]
-# BURNBAR_VERSION=0.1.1 BURNBAR_BUILD=1 BURNBAR_ARCH=native|universal|arm64|x86_64
+# BURNBAR_VERSION=0.1.0 BURNBAR_BUILD=1 BURNBAR_ARCH=native|universal|arm64|x86_64
 # CODESIGN_IDENTITY defaults to ad-hoc (-). An explicit certificate must exist.
 # BURNBAR_HARDENED_RUNTIME=1 enables the runtime and timestamp for release signing.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 install_dir="${1:-/Applications}"
-version="${BURNBAR_VERSION:-0.1.1}"
+version="${BURNBAR_VERSION:-0.1.0}"
 build="${BURNBAR_BUILD:-1}"
 architecture="${BURNBAR_ARCH:-native}"
 identity="${CODESIGN_IDENTITY--}"
