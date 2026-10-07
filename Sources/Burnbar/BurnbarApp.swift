@@ -3,18 +3,16 @@ import Combine
 import SwiftUI
 
 @main
-struct BurnbarApp: App {
-    @NSApplicationDelegateAdaptor(StatusItemController.self) private var statusItemController
-
-    var body: some Scene {
-        Settings {
-            SubscriptionSettingsView(store: statusItemController.snapshotStore)
-        }
-        .commands {
-            CommandGroup(replacing: .appSettings) {
-                Button("Settings…") { statusItemController.showSettings() }
-                    .keyboardShortcut(",", modifiers: .command)
-            }
+enum BurnbarApp {
+    @MainActor
+    static func main() {
+        let application = NSApplication.shared
+        let controller = StatusItemController()
+        application.setActivationPolicy(.accessory)
+        application.delegate = controller
+        application.mainMenu = controller.makeApplicationMenu()
+        withExtendedLifetime(controller) {
+            application.run()
         }
     }
 }
@@ -93,7 +91,39 @@ final class StatusItemController: NSObject, NSApplicationDelegate {
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
-    func showSettings() {
+    func makeApplicationMenu() -> NSMenu {
+        let menu = NSMenu()
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu(title: "Burnbar")
+        let settings = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        settings.target = self
+        appMenu.addItem(settings)
+        appMenu.addItem(.separator())
+        let quit = NSMenuItem(title: "Quit Burnbar", action: #selector(quit), keyEquivalent: "q")
+        quit.target = self
+        appMenu.addItem(quit)
+        appItem.submenu = appMenu
+        menu.addItem(appItem)
+
+        let editItem = NSMenuItem(title: "Edit", action: nil, keyEquivalent: "")
+        let editMenu = NSMenu(title: "Edit")
+        for (title, action, key) in [
+            ("Undo", "undo:", "z"), ("Redo", "redo:", "Z"),
+            ("Cut", "cut:", "x"), ("Copy", "copy:", "c"),
+            ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")
+        ] {
+            editMenu.addItem(NSMenuItem(title: title, action: Selector(action), keyEquivalent: key))
+        }
+        editItem.submenu = editMenu
+        menu.addItem(editItem)
+        return menu
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        false
+    }
+
+    @objc func showSettings() {
         closePopover()
         if settingsWindow == nil {
             let window = NSWindow(
@@ -105,6 +135,7 @@ final class StatusItemController: NSObject, NSApplicationDelegate {
             window.minSize = NSSize(width: 540, height: 330)
             window.contentViewController = NSHostingController(rootView: SubscriptionSettingsView(store: snapshotStore))
             window.isReleasedWhenClosed = false
+            window.isRestorable = false
             window.center()
             settingsWindow = window
         }
@@ -112,7 +143,7 @@ final class StatusItemController: NSObject, NSApplicationDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
-    func quit() {
+    @objc func quit() {
         terminate()
     }
 

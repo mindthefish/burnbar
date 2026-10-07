@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Start in the menu bar without opening or restoring Settings.
+
 - Keep menu bar quota bars slim when only one or two subscriptions are active.
 
 ## 0.1.0 — 2026-10-07
