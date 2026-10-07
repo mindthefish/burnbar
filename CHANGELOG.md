@@ -2,17 +2,11 @@
 
 ## 0.1.0 — 2026-10-07
 
-- Add, edit, disable, and remove Codex and Claude subscriptions in native Settings.
-- Choose subscription folders, names, indicators, and colors.
-- Start in the menu bar without opening or restoring Settings.
-- Keep menu bar quota bars at most ten points high.
-- Show remaining quota in all bars and percentages.
-- Read Codex limit-window durations from the provider response.
-- Detect updated Claude file credentials while keeping background reads noninteractive.
-- Avoid retrying the same rejected credential immediately.
-- Keep model-window usage and reset timestamps paired.
-- Report missing and rejected Codex credentials accurately.
-- Preserve and display the age of retained quota data after failed refreshes.
-- Reduce duplicate requests and back off after Codex rate limits.
-- Build app updates safely, with configurable versions and Universal binaries.
-- Add automated checks and draft release builds.
+First preview release for macOS 14 and later, supporting Apple Silicon and Intel.
+
+- Monitor remaining quota for Codex and Claude accounts in the menu bar.
+- View all available limits, remaining percentages, and reset times in the popover.
+- Add and manage subscriptions with folder selection, names, abbreviations, and colors.
+- Start quietly in the menu bar, with optional launch at login.
+- Keep the last known values visible when a refresh fails, with an explanation and data age.
+- Refresh automatically or manually, with a shared interval in Settings.

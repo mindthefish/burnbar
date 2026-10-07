@@ -68,26 +68,31 @@ jobs:
         with:
           name: Burnbar-macos
           path: artifact
-      - name: Create Family & Friends draft
+      - name: Prepare preview release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_VERSION: ${{ needs.test-and-build.outputs.version }}
         run: |
-          cat artifact/CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
-          printf '\n' >> "$RUNNER_TEMP/release-notes.md"
+          awk -v version="$RELEASE_VERSION" '
+            $1 == "##" {
+              if (found) exit
+              if ($2 == version) { found = 1; next }
+            }
+            found { print }
+          ' artifact/CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          test -s "$RUNNER_TEMP/release-notes.md"
           cat >> "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          Family & Friends test build for macOS 14 or later, Apple Silicon and Intel.
+          ## Installation
 
-          This archive is ad-hoc signed and is not notarized. Gatekeeper may block it.
-          Developer ID signing and notarization must be completed before treating it
-          as a normal downloadable macOS release. Source builds are also available.
+          Download the ZIP, unzip it, and move Burnbar.app to Applications.
+          Requires macOS 14 or later; supports Apple Silicon and Intel.
 
-          Burnbar reads local usage credentials; it does not run inference or switch
-          accounts. Provider usage endpoints are not a guaranteed public API.
+          This preview is not notarized. If macOS blocks it, see the
+          [installation instructions](https://github.com/mindthefish/burnbar#install).
           NOTES
           gh release create "$RELEASE_TAG" "artifact/Burnbar-$RELEASE_VERSION-universal.zip" \
             --repo "$GH_REPO" --verify-tag --draft --prerelease --latest=false \
-            --title "Burnbar $RELEASE_TAG (Family & Friends)" \
+            --title "Burnbar $RELEASE_VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md"
