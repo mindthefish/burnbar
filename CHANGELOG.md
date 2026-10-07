@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-10-07
+
+- Use consistent “updated … ago” labels for the last successful refresh.
+- Include SHA-256 checksums and verifiable build provenance with release downloads.
+
 ## 0.1.0 — 2026-10-07
 
 First preview release for macOS 14 and later, supporting Apple Silicon and Intel.

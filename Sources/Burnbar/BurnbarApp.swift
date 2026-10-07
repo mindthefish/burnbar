@@ -197,7 +197,7 @@ private struct PopoverContent: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)
                 if let lastUpdated = store.lastUpdated {
-                    Text("Data from \(lastUpdated, style: .relative) ago")
+                    Text("updated \(lastUpdated, style: .relative) ago")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -301,7 +301,7 @@ private struct PopoverQuotaCardView: View {
             }
 
             if let date = card.lastSuccessfulUpdate {
-                Text("Updated \(date, style: .relative) ago")
+                Text("updated \(date, style: .relative) ago")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
