@@ -9,6 +9,10 @@ permissions:
 jobs:
   test-and-build:
     runs-on: macos-15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -50,6 +54,13 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/burnbar-build/Burnbar.app" \
             "$RUNNER_TEMP/burnbar-artifact/Burnbar-$BURNBAR_VERSION-$BURNBAR_ARCH.zip"
           cp CHANGELOG.md "$RUNNER_TEMP/burnbar-artifact/CHANGELOG.md"
+          cd "$RUNNER_TEMP/burnbar-artifact"
+          shasum -a 256 "Burnbar-$BURNBAR_VERSION-$BURNBAR_ARCH.zip" > SHA256SUMS
+      - name: Attest build provenance
+        if: github.event_name == 'push'
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ runner.temp }}/burnbar-artifact/*.zip
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +79,16 @@ jobs:
         with:
           name: Burnbar-macos
           path: artifact
+      - name: Verify release package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ needs.test-and-build.outputs.version }}
+        run: |
+          cd artifact
+          sha256sum --check SHA256SUMS
+          gh attestation verify "Burnbar-$RELEASE_VERSION-universal.zip" --repo "$GH_REPO" \
+            --signer-workflow "$GH_REPO/.github/workflows/ci.yml" --deny-self-hosted-runners
       - name: Prepare preview release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,6 +114,7 @@ jobs:
           [installation instructions](https://github.com/mindthefish/burnbar#install).
           NOTES
           gh release create "$RELEASE_TAG" "artifact/Burnbar-$RELEASE_VERSION-universal.zip" \
+            artifact/SHA256SUMS \
             --repo "$GH_REPO" --verify-tag --draft --prerelease --latest=false \
             --title "Burnbar $RELEASE_VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md"

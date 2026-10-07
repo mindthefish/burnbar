@@ -17,6 +17,10 @@ The current preview is not notarized. If macOS blocks it, follow
 [Apple's instructions for opening an app from an unidentified developer](https://support.apple.com/en-us/102445).
 Only approve the app if you trust its source.
 
+To check a download, save the ZIP and `SHA256SUMS` from the same release in one
+folder. Open Terminal in that folder and run `shasum -a 256 -c SHA256SUMS`.
+The ZIP should report `OK`.
+
 ## Add a subscription
 
 Sign in through Codex or Claude Code first. Then:
