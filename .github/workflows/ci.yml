@@ -1,0 +1,93 @@
+name: macOS CI
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: macos-15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Inspect Swift toolchain
+        run: swift --version
+      - name: Determine bundle version
+        id: version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+              echo 'error: release tags must use vX.Y.Z' >&2
+              exit 1
+            }
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo 'version=0.1.0' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Test with fixtures and injected credentials
+        run: swift test
+      - name: Test bundle replacement and release failure paths
+        run: Scripts/test-build-app.sh
+      - name: Build and verify an ad-hoc app
+        env:
+          BURNBAR_ARCH: ${{ github.ref_type == 'tag' && 'universal' || 'native' }}
+          BURNBAR_VERSION: ${{ steps.version.outputs.version }}
+          BURNBAR_BUILD: ${{ github.run_number }}
+          CODESIGN_IDENTITY: '-'
+        run: |
+          mkdir -p "$RUNNER_TEMP/burnbar-build"
+          Scripts/build-app.sh "$RUNNER_TEMP/burnbar-build"
+          if [ "$BURNBAR_ARCH" = universal ]; then
+            for arch in arm64 x86_64; do
+              lipo "$RUNNER_TEMP/burnbar-build/Burnbar.app/Contents/MacOS/Burnbar" -verify_arch "$arch"
+            done
+          fi
+          mkdir -p "$RUNNER_TEMP/burnbar-artifact"
+          ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/burnbar-build/Burnbar.app" \
+            "$RUNNER_TEMP/burnbar-artifact/Burnbar-$BURNBAR_VERSION-$BURNBAR_ARCH.zip"
+          cp CHANGELOG.md "$RUNNER_TEMP/burnbar-artifact/CHANGELOG.md"
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Burnbar-macos
+          path: ${{ runner.temp }}/burnbar-artifact/*
+          if-no-files-found: error
+
+  draft-release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Burnbar-macos
+          path: artifact
+      - name: Create Family & Friends draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ needs.test-and-build.outputs.version }}
+        run: |
+          cat artifact/CHANGELOG.md > "$RUNNER_TEMP/release-notes.md"
+          printf '\n' >> "$RUNNER_TEMP/release-notes.md"
+          cat >> "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          Family & Friends test build for macOS 14 or later, Apple Silicon and Intel.
+
+          This archive is ad-hoc signed and is not notarized. Gatekeeper may block it.
+          Developer ID signing and notarization must be completed before treating it
+          as a normal downloadable macOS release. Source builds are also available.
+
+          Burnbar reads local usage credentials; it does not run inference or switch
+          accounts. Provider usage endpoints are not a guaranteed public API.
+          NOTES
+          gh release create "$RELEASE_TAG" "artifact/Burnbar-$RELEASE_VERSION-universal.zip" \
+            --repo "$GH_REPO" --verify-tag --draft --prerelease --latest=false \
+            --title "Burnbar $RELEASE_TAG (Family & Friends)" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
