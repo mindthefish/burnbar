@@ -404,7 +404,7 @@ private struct MenuBarLabel: View {
                                         .lineLimit(1)
                                         .frame(width: rows == 1 ? 16 : 12, alignment: .trailing)
                                     MenuBarQuotaBar(indicator: item)
-                                        .frame(height: rowHeight)
+                                        .frame(height: min(5, rowHeight))
                                 }
                                 .frame(height: rowHeight)
                             }
