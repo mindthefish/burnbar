@@ -6,3 +6,5 @@ Assets/AppIcon.icns
 docs/
 # Local release output
 dist/
+CLAUDE.md
+AGENTS.md
