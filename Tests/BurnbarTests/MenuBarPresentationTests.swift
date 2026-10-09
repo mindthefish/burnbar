@@ -92,18 +92,18 @@ struct MenuBarPresentationTests {
         #expect(indicator.visualState == .stale(fillFraction: 0.23))
     }
     @Test
-    func weeklyRemainingQuotaRemainsIndependentOfShortWindowAndSurvivesStaleness() {
+    func windowFillsRemainIndependentAndSurviveStaleness() {
         for state in [QuotaSnapshot.State.available, .stale] {
             let indicator = MenuBarIndicator(provider: ProviderQuotaSnapshot(
                 indicator: "P",
                 displayName: "Private",
                 accent: .privateOpenAI,
                 snapshot: QuotaSnapshot(state: state, windows: [
-                    QuotaWindow(label: "5h", usedPercentage: 30, resetsAt: nil),
-                    QuotaWindow(label: "7d", usedPercentage: 80, resetsAt: nil)
+                    QuotaWindow(label: "7d", usedPercentage: 80, resetsAt: nil),
+                    QuotaWindow(label: "5h", usedPercentage: 30, resetsAt: nil)
                 ])
             ))
-            #expect(indicator.weeklyFillFraction == 0.2)
+            #expect(indicator.windowFillFractions == [0.7, 0.2])
             #expect(indicator.visualState == (state == .available
                 ? .available(fillFraction: 0.7) : .stale(fillFraction: 0.7)))
         }
@@ -120,21 +120,34 @@ struct MenuBarPresentationTests {
                     QuotaWindow(label: "7d", usedPercentage: usedPercentage, resetsAt: nil)
                 ])
             ))
-            #expect(indicator.weeklyFillFraction == expected)
+            #expect(indicator.windowFillFractions == [expected, expected])
             #expect(indicator.visualState == (state == .available
                 ? .available(fillFraction: expected) : .stale(fillFraction: expected)))
         }
     }
     @Test
-    func longerWindowOutlineUsesReportedDurationInsteadOfAWeeklyLabel() {
+    func threeWindowsAreSortedByDurationAndKeepExhaustedQuota() {
+        let indicator = MenuBarIndicator(provider: ProviderQuotaSnapshot(
+            indicator: "W", displayName: "Work", accent: .workOpenAI,
+            snapshot: QuotaSnapshot(state: .available, windows: [
+                QuotaWindow(label: "7d", usedPercentage: 100, resetsAt: nil, durationSeconds: 604_800),
+                QuotaWindow(label: "1d", usedPercentage: 50, resetsAt: nil, durationSeconds: 86_400),
+                QuotaWindow(label: "5h", usedPercentage: 0, resetsAt: nil, durationSeconds: 18_000)
+            ])
+        ))
+        #expect(indicator.windowFillFractions == [1, 0.5, 0])
+    }
+
+    @Test
+    func windowStripsUseReportedDurationInsteadOfWeeklyLabels() {
         let indicator = MenuBarIndicator(provider: ProviderQuotaSnapshot(
             indicator: "P", displayName: "Private", accent: .privateOpenAI,
             snapshot: QuotaSnapshot(state: .available, windows: [
-                QuotaWindow(label: "8.75h", usedPercentage: 30, resetsAt: nil, durationSeconds: 31_500),
-                QuotaWindow(label: "8d", usedPercentage: 80, resetsAt: nil, durationSeconds: 691_200)
+                QuotaWindow(label: "8d", usedPercentage: 80, resetsAt: nil, durationSeconds: 691_200),
+                QuotaWindow(label: "8.75h", usedPercentage: 30, resetsAt: nil, durationSeconds: 31_500)
             ])
         ))
         #expect(indicator.visualState == .available(fillFraction: 0.7))
-        #expect(indicator.weeklyFillFraction == 0.2)
+        #expect(indicator.windowFillFractions == [0.7, 0.2])
     }
 }

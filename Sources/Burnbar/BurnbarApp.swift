@@ -435,7 +435,11 @@ private struct MenuBarLabel: View {
                                         .lineLimit(1)
                                         .frame(width: rows == 1 ? 16 : 12, alignment: .trailing)
                                     MenuBarQuotaBar(indicator: item)
-                                        .frame(height: min(10, rowHeight))
+                                        .frame(height: min(
+                                            presentation.indicators.count == 1 && item.windowFillFractions.count > 1
+                                                ? 18 : 10,
+                                            rowHeight
+                                        ))
                                 }
                                 .frame(height: rowHeight)
                             }
@@ -475,24 +479,32 @@ private struct MenuBarQuotaBar: View {
     }
 
     private func filledBar(size: CGSize, fillFraction: Double, opacity: Double) -> some View {
-        let fillWidth = size.width * min(1, max(0, fillFraction))
+        let fractions = indicator.windowFillFractions.isEmpty
+            ? [min(1, max(0, fillFraction))]
+            : indicator.windowFillFractions
+        let spacing: CGFloat = 1
+        let stripHeight = max(0, (size.height - CGFloat(fractions.count - 1) * spacing) / CGFloat(fractions.count))
 
-        return ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Color.accent(for: indicator.accent).opacity(0.22))
-            // The longer window is behind the current short-window fill. Drawing it first keeps
-            // its leading outline from cutting into a filled bar.
-            if let weeklyFillFraction = indicator.weeklyFillFraction,
-               weeklyFillFraction > fillFraction {
-                Capsule()
-                    .strokeBorder(Color.accent(for: indicator.accent).opacity(opacity), lineWidth: 1)
-                    .frame(width: size.width * weeklyFillFraction)
-            }
-            if fillWidth > 0 {
-                Capsule()
-                    .fill(Color.accent(for: indicator.accent).opacity(opacity))
-                    .frame(width: size.width, height: size.height)
-                    .offset(x: fillWidth - size.width)
+        // Rectangular strips share one outer mask, keeping the inner edges straight.
+        return VStack(spacing: spacing) {
+            ForEach(fractions.indices, id: \.self) { index in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.accent(for: indicator.accent).opacity(0.22))
+                    if fractions.count == 1 {
+                        if fractions[index] > 0 {
+                            Capsule()
+                                .fill(Color.accent(for: indicator.accent).opacity(opacity))
+                                .frame(width: size.width, height: stripHeight)
+                                .offset(x: size.width * (fractions[index] - 1))
+                        }
+                    } else {
+                        Rectangle()
+                            .fill(Color.accent(for: indicator.accent).opacity(opacity))
+                            .frame(width: size.width * fractions[index])
+                    }
+                }
+                .frame(width: size.width, height: stripHeight)
             }
         }
         .frame(width: size.width, height: size.height)

@@ -43,8 +43,9 @@ access…** in its card. Background refreshes do not show permission dialogs.
 ## Read the bars
 
 - A full bar means **100% remaining**; an empty bar means the quota is exhausted.
-- Each subscription has one menu bar row, tracking its shortest available limit.
-  An outline can show the remaining quota of a longer limit.
+- Each subscription has one menu bar row. Its bar is split into horizontal
+  strips for each limit, ordered from shortest at the top to longest at the
+  bottom. A single subscription with multiple limits gets a taller bar.
 - Click Burnbar to see all limits and their reset times. Limits are detected
   automatically; there is nothing to configure for them.
 - Dimmed bars show the last known values after a failed refresh. The popover

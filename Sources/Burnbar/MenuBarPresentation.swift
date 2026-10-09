@@ -25,18 +25,20 @@ struct MenuBarIndicator: Equatable, Sendable {
     let accent: ProviderQuotaSnapshot.Accent
     let visualState: VisualState
     let health: Health?
-    let weeklyFillFraction: Double?
+    /// Remaining quota per window, ordered from shortest to longest.
+    let windowFillFractions: [Double]
 
     init(provider: ProviderQuotaSnapshot) {
         indicator = provider.indicator
         accent = provider.accent
         let windows = provider.snapshot.windows
-        let measured = windows.filter { $0.durationSeconds != nil }
-        let longWindow = measured.count > 1
-            ? measured.max { ($0.durationSeconds ?? 0) < ($1.durationSeconds ?? 0) }
-            : windows.first { $0.label == "7d" }
-        weeklyFillFraction = longWindow
-            .map { min(1, max(0, $0.remainingPercentage / 100)) }
+        windowFillFractions = windows.enumerated()
+            .sorted {
+                let left = Self.duration(of: $0.element)
+                let right = Self.duration(of: $1.element)
+                return left == right ? $0.offset < $1.offset : left < right
+            }
+            .map { min(1, max(0, $0.element.remainingPercentage / 100)) }
 
         switch provider.snapshot.menuBarValue {
         case let .available(usedPercentage):
@@ -56,6 +58,17 @@ struct MenuBarIndicator: Equatable, Sendable {
         case .unavailable:
             visualState = .unavailable
             health = nil
+        }
+    }
+
+    private static func duration(of window: QuotaWindow) -> Int {
+        if let seconds = window.durationSeconds, seconds > 0 {
+            return seconds
+        }
+        switch window.label {
+        case "5h": return 5 * 3_600
+        case "7d": return 7 * 86_400
+        default: return Int.max
         }
     }
 }
