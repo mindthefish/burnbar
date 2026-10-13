@@ -31,11 +31,21 @@ Sign in through Codex or Claude Code first. Then:
 2. Choose **Add subscription** and select Codex or Claude.
 3. Choose that account's configuration folder: usually `~/.codex` for Codex or
    `~/.claude` for Claude Code. Use the matching folder for a custom account setup.
-4. Choose a name, a short abbreviation, and a color, then save.
+4. Choose a name, a label (up to two characters, including emoji, or an SF Symbol),
+   and a color, then save.
 
 Add multiple accounts by selecting their respective folders. You can edit,
 disable, or remove subscriptions in Settings. Removing a subscription from
 Burnbar leaves its account and credentials untouched.
+Enable up to three subscriptions at a time. Drag their handles to change the
+order in Settings, the menu bar, and the popover.
+Older configurations with more than three enabled subscriptions keep the first
+three active; the remaining subscriptions stay saved and can be enabled later.
+
+For optional quota colors, enable **Color by remaining quota**. Choose the
+**Full** and **Empty** colors; each limit's fill changes with its remaining
+quota. The Full color also identifies the subscription in Settings. Turn the
+option off to return to its fixed color.
 
 If a Claude subscription needs Keychain permission, click **Allow credential
 access…** in its card. Background refreshes do not show permission dialogs.

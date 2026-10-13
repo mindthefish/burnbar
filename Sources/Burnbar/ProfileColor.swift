@@ -2,6 +2,20 @@ import AppKit
 import SwiftUI
 
 extension Color {
+    static func quotaOutline(opacity: Double = 1) -> Color {
+        .primary.opacity(0.3 * opacity)
+    }
+
+    static func quotaTrack(opacity: Double = 1) -> Color {
+        .gray.opacity(0.24 * opacity)
+    }
+
+    static func quota(remainingFraction: Double, accent: ProviderQuotaSnapshot.Accent, colors: QuotaColors?) -> Color {
+        guard let colors else { return .accent(for: accent) }
+        let rgb = colors.rgb(remainingFraction: remainingFraction)
+        return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+    }
+
     static func accent(for accent: ProviderQuotaSnapshot.Accent) -> Color {
         switch accent {
         case .claude:

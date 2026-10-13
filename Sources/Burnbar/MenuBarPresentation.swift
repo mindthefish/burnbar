@@ -22,6 +22,8 @@ struct MenuBarIndicator: Equatable, Sendable {
     }
 
     let indicator: String
+    let symbol: SubscriptionSymbol?
+    let quotaColors: QuotaColors?
     let accent: ProviderQuotaSnapshot.Accent
     let visualState: VisualState
     let health: Health?
@@ -30,6 +32,8 @@ struct MenuBarIndicator: Equatable, Sendable {
 
     init(provider: ProviderQuotaSnapshot) {
         indicator = provider.indicator
+        symbol = provider.symbol
+        quotaColors = provider.quotaColors
         accent = provider.accent
         let windows = provider.snapshot.windows
         windowFillFractions = windows.enumerated()

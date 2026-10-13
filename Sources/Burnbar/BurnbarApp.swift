@@ -70,7 +70,7 @@ final class StatusItemController: NSObject, NSApplicationDelegate {
         let hostingView = NSHostingView(
             rootView: MenuBarLabel(store: snapshotStore)
         )
-        hostingView.frame = button.bounds.insetBy(dx: 3, dy: 0)
+        hostingView.frame = button.bounds
         hostingView.autoresizingMask = [.width, .height]
         button.addSubview(hostingView)
         button.target = self
@@ -127,13 +127,14 @@ final class StatusItemController: NSObject, NSApplicationDelegate {
         closePopover()
         if settingsWindow == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 600, height: 400),
+                contentRect: NSRect(x: 0, y: 0, width: 600, height: 440),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable],
                 backing: .buffered, defer: false
             )
             window.title = "Burnbar Settings"
-            window.minSize = NSSize(width: 540, height: 330)
+            window.minSize = NSSize(width: 540, height: 448)
             window.contentViewController = NSHostingController(rootView: SubscriptionSettingsView(store: snapshotStore))
+            window.setContentSize(NSSize(width: 600, height: 440))
             window.isReleasedWhenClosed = false
             window.isRestorable = false
             window.center()
@@ -314,7 +315,8 @@ private struct PopoverQuotaCardView: View {
                             .foregroundStyle(Color(white: 0.7))
                         PopoverWindowBar(
                             remainingFraction: window.remainingPercentage / 100,
-                            accent: card.accent
+                            accent: card.accent,
+                            quotaColors: card.quotaColors
                         )
                         .frame(height: 6)
                         .opacity(card.state == .stale ? 0.45 : 1)
@@ -365,15 +367,22 @@ private struct PopoverQuotaCardView: View {
 private struct PopoverWindowBar: View {
     let remainingFraction: Double
     let accent: ProviderQuotaSnapshot.Accent
+    let quotaColors: QuotaColors?
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         GeometryReader { geometry in
+            let color = Color.quota(remainingFraction: remainingFraction, accent: accent, colors: quotaColors)
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.accent(for: accent).opacity(0.22))
+                    .fill(Color.quotaTrack())
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.accent(for: accent))
+                    .fill(color)
                     .frame(width: geometry.size.width * remainingFraction)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 3)
+                    .strokeBorder(Color.quotaOutline(), lineWidth: 1 / displayScale)
             }
         }
         .accessibilityHidden(true)
@@ -383,6 +392,7 @@ private struct PopoverWindowBar: View {
 private struct PopoverQuotaBar: View {
     let barState: PopoverQuotaCard.BarState
     let accent: ProviderQuotaSnapshot.Accent
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         GeometryReader { geometry in
@@ -390,10 +400,14 @@ private struct PopoverQuotaBar: View {
             case let .available(fillFraction, _):
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accent(for: accent).opacity(0.22))
+                        .fill(Color.quotaTrack())
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color.accent(for: accent))
                         .frame(width: geometry.size.width * fillFraction)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 2)
+                        .strokeBorder(Color.quotaOutline(), lineWidth: 1 / displayScale)
                 }
             case .stale, .unavailable:
                 RoundedRectangle(cornerRadius: 2)
@@ -405,6 +419,7 @@ private struct PopoverQuotaBar: View {
 }
 
 private struct MenuBarLabel: View {
+    @Environment(\.displayScale) private var displayScale
     @ObservedObject private var store: QuotaSnapshotStore
 
     init(store: QuotaSnapshotStore) {
@@ -416,8 +431,20 @@ private struct MenuBarLabel: View {
 
         GeometryReader { geometry in
             let rows = max(1, min(3, presentation.indicators.count))
-            let availableHeight = max(0, geometry.size.height - 4)
-            let rowHeight = max(0, (availableHeight - CGFloat(rows - 1) * 2) / CGFloat(rows))
+            let rowSpacing: CGFloat = rows == 3 ? 1 / displayScale : 2
+            let availableHeight = max(0, geometry.size.height - (rows == 3 ? 0 : 4))
+            let rowHeight = max(0, floor(
+                (availableHeight - CGFloat(rows - 1) * rowSpacing) / CGFloat(rows) * displayScale
+            ) / displayScale)
+            let contentHeight = rowHeight * CGFloat(rows) + rowSpacing * CGFloat(rows - 1)
+            let topInset = floor((geometry.size.height - contentHeight) / 2 * displayScale) / displayScale
+            let labelFontSize: CGFloat = rows == 3 ? 7 : (rows == 2 ? 9 : 11)
+            let systemFont = NSFont.systemFont(ofSize: labelFontSize, weight: .medium)
+            let labelFont = systemFont.fontDescriptor.withDesign(.rounded)
+                .flatMap { NSFont(descriptor: $0, size: labelFontSize) } ?? systemFont
+            let labelWidth = max(16, presentation.indicators.filter { $0.symbol == nil }.map {
+                ceil(($0.indicator as NSString).size(withAttributes: [.font: labelFont]).width) + 1
+            }.max() ?? 0)
 
             HStack(spacing: 8) {
                 if presentation.indicators.isEmpty {
@@ -425,19 +452,24 @@ private struct MenuBarLabel: View {
                         .font(.system(size: 12))
                 } else {
                     ForEach(0..<((presentation.indicators.count + 2) / 3), id: \.self) { column in
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: rowSpacing) {
                             ForEach(column * 3..<min(column * 3 + 3, presentation.indicators.count), id: \.self) { index in
                                 let item = presentation.indicators[index]
                                 HStack(spacing: 3) {
-                                    Text(item.indicator)
-                                        .font(.system(size: min(12, rowHeight + 1), weight: .medium, design: .rounded))
-                                        .minimumScaleFactor(0.7)
+                                    Group {
+                                        if let symbol = item.symbol {
+                                            Image(systemName: symbol.rawValue)
+                                        } else {
+                                            Text(item.indicator)
+                                        }
+                                    }
+                                        .font(.system(size: labelFontSize, weight: .medium, design: .rounded))
                                         .lineLimit(1)
-                                        .frame(width: rows == 1 ? 16 : 12, alignment: .trailing)
+                                        .frame(width: labelWidth, alignment: .trailing)
                                     MenuBarQuotaBar(indicator: item)
                                         .frame(height: min(
                                             presentation.indicators.count == 1 && item.windowFillFractions.count > 1
-                                                ? 18 : 10,
+                                                ? 14 : 10,
                                             rowHeight
                                         ))
                                 }
@@ -448,9 +480,8 @@ private struct MenuBarLabel: View {
                     }
                 }
             }
-            .padding(.horizontal, 2)
-            .frame(width: geometry.size.width, height: availableHeight)
-            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            .frame(width: geometry.size.width, height: contentHeight)
+            .position(x: geometry.size.width / 2, y: topInset + contentHeight / 2)
         }
         .accessibilityLabel("Burnbar usage")
     }
@@ -458,6 +489,7 @@ private struct MenuBarLabel: View {
 
 private struct MenuBarQuotaBar: View {
     let indicator: MenuBarIndicator
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         GeometryReader { geometry in
@@ -482,33 +514,44 @@ private struct MenuBarQuotaBar: View {
         let fractions = indicator.windowFillFractions.isEmpty
             ? [min(1, max(0, fillFraction))]
             : indicator.windowFillFractions
-        let spacing: CGFloat = 1
-        let stripHeight = max(0, (size.height - CGFloat(fractions.count - 1) * spacing) / CGFloat(fractions.count))
+        let spacing = 1 / displayScale
+        let stripHeight = max(0, floor(
+            (size.height - CGFloat(fractions.count - 1) * spacing) / CGFloat(fractions.count) * displayScale
+        ) / displayScale)
+        let barHeight = stripHeight * CGFloat(fractions.count) + spacing * CGFloat(fractions.count - 1)
+        let topInset = floor((size.height - barHeight) / 2 * displayScale) / displayScale
 
         // Rectangular strips share one outer mask, keeping the inner edges straight.
         return VStack(spacing: spacing) {
             ForEach(fractions.indices, id: \.self) { index in
+                let color = Color.quota(remainingFraction: fractions[index], accent: indicator.accent, colors: indicator.quotaColors)
                 ZStack(alignment: .leading) {
                     Rectangle()
-                        .fill(Color.accent(for: indicator.accent).opacity(0.22))
+                        .fill(Color.quotaTrack(opacity: opacity))
                     if fractions.count == 1 {
                         if fractions[index] > 0 {
                             Capsule()
-                                .fill(Color.accent(for: indicator.accent).opacity(opacity))
+                                .fill(color.opacity(opacity))
                                 .frame(width: size.width, height: stripHeight)
                                 .offset(x: size.width * (fractions[index] - 1))
                         }
                     } else {
                         Rectangle()
-                            .fill(Color.accent(for: indicator.accent).opacity(opacity))
+                            .fill(color.opacity(opacity))
                             .frame(width: size.width * fractions[index])
                     }
                 }
                 .frame(width: size.width, height: stripHeight)
             }
         }
-        .frame(width: size.width, height: size.height)
+        .frame(width: size.width, height: barHeight)
         .clipShape(Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(Color.quotaOutline(opacity: opacity), lineWidth: 1 / displayScale)
+        }
+        .offset(y: topInset)
+        .frame(width: size.width, height: size.height, alignment: .top)
     }
 
     private var dashedBar: some View {

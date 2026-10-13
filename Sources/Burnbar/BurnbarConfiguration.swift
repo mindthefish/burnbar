@@ -1,6 +1,16 @@
 import Foundation
 
+enum SubscriptionSymbol: String, Codable, CaseIterable, Sendable {
+    case person = "person.fill"
+    case briefcase = "briefcase.fill"
+    case terminal = "terminal"
+    case bolt = "bolt.fill"
+    case star = "star.fill"
+    case flame = "flame.fill"
+}
+
 struct BurnbarConfiguration: Codable, Equatable, Sendable {
+    static let maximumActiveSubscriptions = 3
     var refreshIntervalMinutes: Int = 5
     var profiles: [Profile]
 
@@ -26,12 +36,23 @@ struct BurnbarConfiguration: Codable, Equatable, Sendable {
         var home: String
         var enabled: Bool
         var color: String? = nil
+        var symbol: SubscriptionSymbol? = nil
+        var quotaColors: QuotaColors? = nil
+
+        var hasValidIndicator: Bool {
+            symbol != nil || ((1...2).contains(indicator.count) && !indicator.contains(where: \.isWhitespace))
+        }
 
         var homeURL: URL {
             URL(fileURLWithPath: NSString(string: home).expandingTildeInPath, isDirectory: true)
         }
 
         var accent: ProviderQuotaSnapshot.Accent {
+            if let quotaColors { return .custom(hex: quotaColors.full) }
+            return fixedAccent
+        }
+
+        var fixedAccent: ProviderQuotaSnapshot.Accent {
             if let color { return .custom(hex: color) }
             return provider == .claude ? .claude : (id == "work" ? .workOpenAI : .privateOpenAI)
         }
@@ -40,7 +61,9 @@ struct BurnbarConfiguration: Codable, Equatable, Sendable {
             ProviderQuotaSnapshot(
                 indicator: indicator, displayName: name,
                 accent: accent,
-                snapshot: .unavailable
+                snapshot: .unavailable,
+                symbol: symbol,
+                quotaColors: quotaColors
             )
         }
     }
@@ -54,22 +77,26 @@ struct BurnbarConfiguration: Codable, Equatable, Sendable {
         guard Set(profiles.map(\.id)).count == profiles.count else {
             throw ConfigurationError.invalid("Profile IDs must be unique.")
         }
+        guard profiles.filter(\.enabled).count <= Self.maximumActiveSubscriptions else {
+            throw ConfigurationError.invalid("Enable up to 3 subscriptions at a time. Disable another subscription first.")
+        }
         for profile in profiles {
             if let color = profile.color {
-                guard color.utf8.count == 7,
-                      color.first == "#",
-                      color.dropFirst().utf8.allSatisfy({
-                          (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
-                      }) else {
+                guard QuotaColors.isValidHex(color) else {
                     throw ConfigurationError.invalid("Profile color must use the hex format #RRGGBB.")
+                }
+            }
+            if let quotaColors = profile.quotaColors {
+                guard QuotaColors.isValidHex(quotaColors.full), QuotaColors.isValidHex(quotaColors.empty) else {
+                    throw ConfigurationError.invalid("Quota colors must use the hex format #RRGGBB.")
                 }
             }
             guard !profile.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                   !profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  (1...2).contains(profile.indicator.count),
-                  !profile.indicator.contains(where: \.isWhitespace),
+                  profile.hasValidIndicator,
+                  profile.indicator.count <= 2,
                   profile.home.hasPrefix("/") || profile.home.hasPrefix("~/") else {
-                throw ConfigurationError.invalid("Each profile needs an ID, name, 1–2 character indicator, and absolute or ~/ home path.")
+                throw ConfigurationError.invalid("Each profile needs an ID, name, symbol or 1–2 character indicator, and absolute or ~/ home path.")
             }
         }
         return self
@@ -92,7 +119,17 @@ struct ConfigurationFile {
         guard FileManager.default.fileExists(atPath: url.path) else { return .defaults }
         let data = try Data(contentsOf: url)
         do {
-            return try JSONDecoder().decode(BurnbarConfiguration.self, from: data).validated()
+            var configuration = try JSONDecoder().decode(BurnbarConfiguration.self, from: data)
+            // Older releases allowed more active subscriptions. Keep every profile
+            // editable while selecting the first three in their saved order.
+            var activeCount = 0
+            for index in configuration.profiles.indices where configuration.profiles[index].enabled {
+                activeCount += 1
+                if activeCount > BurnbarConfiguration.maximumActiveSubscriptions {
+                    configuration.profiles[index].enabled = false
+                }
+            }
+            return try configuration.validated()
         } catch let error as ConfigurationError {
             throw error
         } catch {
@@ -123,6 +160,8 @@ struct ConfigurationFile {
                 "\"home\": \(try scalar(profile.home))"
             ]
             if let color = profile.color { fields.append("\"color\": \(try scalar(color))") }
+            if let symbol = profile.symbol { fields.append("\"symbol\": \(try scalar(symbol))") }
+            if let quotaColors = profile.quotaColors { fields.append("\"quotaColors\": \(try scalar(quotaColors))") }
             fields.append("\"enabled\": \(try scalar(profile.enabled))")
             fields.append("\"id\": \(try scalar(profile.id))")
             return "    {\n      " + fields.joined(separator: ",\n      ") + "\n    }"

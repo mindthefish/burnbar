@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — 2026-10-13
+
+- Show each subscription's quota windows as separate fills inside one menu bar capsule, ordered from shortest to longest.
+- Improve readability with pixel-aligned fills, neutral tracks, subtle outlines, and label sizes adapted to the number of active subscriptions.
+- Optionally color each limit by its remaining quota, with configurable full and empty colors. The full color also identifies the subscription in Settings.
+- Choose a two-character abbreviation, emoji, or a built-in SF Symbol for each subscription.
+- Reorder subscriptions by dragging their handles in Settings; the same order appears in the menu bar and popover.
+- Refresh the Settings layout so three subscriptions fit without scrolling, with at most three active at a time.
+- Keep all profiles from older configurations; if more than three were active, keep the first three active in their saved order.
+- Preserve the existing dimmed last-known values and dashed unavailable indicators.
+
 ## 0.1.0 — 2026-10-07
 
 First preview release for macOS 14 and later, supporting Apple Silicon and Intel.

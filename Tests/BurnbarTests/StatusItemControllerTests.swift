@@ -52,16 +52,16 @@ struct StatusItemControllerTests {
 
     @Test
     @MainActor
-    func extraProfilesUseAnotherColumn() {
+    func extraInactiveProfilesKeepThreeActiveProfilesInOneColumn() {
         // SwiftPM runners do not start an NSApplication before AppKit tests.
         _ = NSApplication.shared
         var configuration = BurnbarConfiguration.sample
         configuration.profiles[0].enabled = true
-        configuration.profiles.append(.init(id: "extra", provider: .codex, name: "Extra", indicator: "E", home: "~/.codex-extra", enabled: true))
+        configuration.profiles.append(.init(id: "extra", provider: .codex, name: "Extra", indicator: "E", home: "~/.codex-extra", enabled: false))
         let controller = StatusItemController(snapshotStore: QuotaSnapshotStore(configuration: configuration))
         controller.install()
         defer { controller.remove() }
-        #expect(controller.statusItem.length == 180)
+        #expect(controller.statusItem.length == 90)
     }
 
     @Test
@@ -90,6 +90,7 @@ struct StatusItemControllerTests {
         let window = controller.settingsWindow
         #expect(window?.title == "Burnbar Settings")
         #expect(window?.contentViewController != nil)
+        #expect((window?.contentLayoutRect.height ?? 0) >= 420)
         controller.showSettings()
         #expect(controller.settingsWindow === window)
         controller.remove()

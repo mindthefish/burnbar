@@ -61,6 +61,18 @@ final class QuotaSnapshotStore: ObservableObject {
     }
 
     @discardableResult
+    func moveProfile(id: String, to targetID: String) -> Bool {
+        saveConfiguration { updated in
+            guard let source = updated.profiles.firstIndex(where: { $0.id == id }),
+                  let target = updated.profiles.firstIndex(where: { $0.id == targetID }) else {
+                throw ConfigurationError.invalid("This subscription no longer exists. Reload before reordering.")
+            }
+            let profile = updated.profiles.remove(at: source)
+            updated.profiles.insert(profile, at: target)
+        }
+    }
+
+    @discardableResult
     func saveProfile(_ profile: BurnbarConfiguration.Profile, replacing original: BurnbarConfiguration.Profile? = nil) -> Bool {
         saveConfiguration { updated in
             if updated.profiles.contains(where: {
@@ -227,7 +239,9 @@ final class QuotaSnapshotStore: ObservableObject {
                 accent: provider.accent, snapshot: provider.snapshot.superseded(by: result.snapshot),
                 failure: result.failure,
                 lastSuccessfulUpdate: result.snapshot.state == .available
-                    ? completed?.date : provider.lastSuccessfulUpdate
+                    ? completed?.date : provider.lastSuccessfulUpdate,
+                symbol: provider.symbol,
+                quotaColors: provider.quotaColors
             )
         }
         lastAttempted = profiles.isEmpty ? nil : now()

@@ -21,6 +21,7 @@ struct PopoverQuotaCard: Equatable, Sendable {
 
     let displayName: String
     let accent: ProviderQuotaSnapshot.Accent
+    let quotaColors: QuotaColors?
     let state: QuotaSnapshot.State
     let windows: [QuotaWindow]
     let barState: BarState
@@ -31,6 +32,7 @@ struct PopoverQuotaCard: Equatable, Sendable {
     init(provider: ProviderQuotaSnapshot) {
         displayName = provider.displayName
         accent = provider.accent
+        quotaColors = provider.quotaColors
         state = provider.snapshot.state
         windows = provider.snapshot.windows
         statusNote = provider.failure?.label

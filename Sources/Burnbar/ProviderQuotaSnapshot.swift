@@ -16,6 +16,8 @@ struct ProviderQuotaSnapshot: Equatable, Sendable {
     let failure: QuotaRefreshFailure?
     /// Completion time of the last successful quota response, retained on failure.
     let lastSuccessfulUpdate: Date?
+    let symbol: SubscriptionSymbol?
+    let quotaColors: QuotaColors?
 
     init(
         indicator: String,
@@ -23,7 +25,9 @@ struct ProviderQuotaSnapshot: Equatable, Sendable {
         accent: Accent,
         snapshot: QuotaSnapshot,
         failure: QuotaRefreshFailure? = nil,
-        lastSuccessfulUpdate: Date? = nil
+        lastSuccessfulUpdate: Date? = nil,
+        symbol: SubscriptionSymbol? = nil,
+        quotaColors: QuotaColors? = nil
     ) {
         self.indicator = indicator
         self.displayName = displayName
@@ -31,6 +35,8 @@ struct ProviderQuotaSnapshot: Equatable, Sendable {
         self.snapshot = snapshot
         self.failure = failure
         self.lastSuccessfulUpdate = lastSuccessfulUpdate
+        self.symbol = symbol
+        self.quotaColors = quotaColors
     }
 
     static let unavailableSnapshots = [
