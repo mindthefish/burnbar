@@ -435,9 +435,7 @@ private struct MenuBarLabel: View {
             let contentHeight = rowHeight * CGFloat(rows) + rowSpacing * CGFloat(rows - 1)
             let topInset = floor((geometry.size.height - contentHeight) / 2 * displayScale) / displayScale
             let labelFontSize: CGFloat = rows == 3 ? 7 : (rows == 2 ? 9 : 11)
-            let systemFont = NSFont.systemFont(ofSize: labelFontSize, weight: .medium)
-            let labelFont = systemFont.fontDescriptor.withDesign(.rounded)
-                .flatMap { NSFont(descriptor: $0, size: labelFontSize) } ?? systemFont
+            let labelFont = NSFont.monospacedSystemFont(ofSize: labelFontSize, weight: .medium)
             let labelWidth = max(16, presentation.indicators.filter { $0.symbol == nil }.map {
                 ceil(($0.indicator as NSString).size(withAttributes: [.font: labelFont]).width) + 1
             }.max() ?? 0)
@@ -459,9 +457,9 @@ private struct MenuBarLabel: View {
                                             Text(item.indicator)
                                         }
                                     }
-                                        .font(.system(size: labelFontSize, weight: .medium, design: .rounded))
+                                        .font(.system(size: labelFontSize, weight: .medium, design: .monospaced))
                                         .lineLimit(1)
-                                        .frame(width: labelWidth, alignment: .trailing)
+                                        .frame(width: labelWidth, alignment: .center)
                                     MenuBarQuotaBar(indicator: item, dividerPixels: CGFloat(4 - rows))
                                         .frame(height: min(
                                             presentation.indicators.count == 1 && item.windowFillFractions.count > 1
