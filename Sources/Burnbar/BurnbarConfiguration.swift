@@ -7,6 +7,7 @@ enum SubscriptionSymbol: String, Codable, CaseIterable, Sendable {
     case bolt = "bolt.fill"
     case star = "star.fill"
     case flame = "flame.fill"
+    case heart = "heart.fill"
 }
 
 struct BurnbarConfiguration: Codable, Equatable, Sendable {

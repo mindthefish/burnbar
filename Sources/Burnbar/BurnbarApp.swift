@@ -377,12 +377,10 @@ private struct PopoverWindowBar: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(Color.quotaTrack())
                 RoundedRectangle(cornerRadius: 3)
+                    .strokeBorder(Color.quotaOutline(), lineWidth: 1 / displayScale)
+                RoundedRectangle(cornerRadius: 3)
                     .fill(color)
                     .frame(width: geometry.size.width * remainingFraction)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 3)
-                    .strokeBorder(Color.quotaOutline(), lineWidth: 1 / displayScale)
             }
         }
         .accessibilityHidden(true)
@@ -402,12 +400,10 @@ private struct PopoverQuotaBar: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(Color.quotaTrack())
                     RoundedRectangle(cornerRadius: 2)
+                        .strokeBorder(Color.quotaOutline(), lineWidth: 1 / displayScale)
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(Color.accent(for: accent))
                         .frame(width: geometry.size.width * fillFraction)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 2)
-                        .strokeBorder(Color.quotaOutline(), lineWidth: 1 / displayScale)
                 }
             case .stale, .unavailable:
                 RoundedRectangle(cornerRadius: 2)
@@ -466,7 +462,7 @@ private struct MenuBarLabel: View {
                                         .font(.system(size: labelFontSize, weight: .medium, design: .rounded))
                                         .lineLimit(1)
                                         .frame(width: labelWidth, alignment: .trailing)
-                                    MenuBarQuotaBar(indicator: item)
+                                    MenuBarQuotaBar(indicator: item, dividerPixels: CGFloat(4 - rows))
                                         .frame(height: min(
                                             presentation.indicators.count == 1 && item.windowFillFractions.count > 1
                                                 ? 14 : 10,
@@ -489,6 +485,7 @@ private struct MenuBarLabel: View {
 
 private struct MenuBarQuotaBar: View {
     let indicator: MenuBarIndicator
+    let dividerPixels: CGFloat
     @Environment(\.displayScale) private var displayScale
 
     var body: some View {
@@ -514,42 +511,47 @@ private struct MenuBarQuotaBar: View {
         let fractions = indicator.windowFillFractions.isEmpty
             ? [min(1, max(0, fillFraction))]
             : indicator.windowFillFractions
-        let spacing = 1 / displayScale
+        let spacing = dividerPixels / displayScale
         let stripHeight = max(0, floor(
             (size.height - CGFloat(fractions.count - 1) * spacing) / CGFloat(fractions.count) * displayScale
         ) / displayScale)
         let barHeight = stripHeight * CGFloat(fractions.count) + spacing * CGFloat(fractions.count - 1)
         let topInset = floor((size.height - barHeight) / 2 * displayScale) / displayScale
 
-        // Rectangular strips share one outer mask, keeping the inner edges straight.
-        return VStack(spacing: spacing) {
-            ForEach(fractions.indices, id: \.self) { index in
-                let color = Color.quota(remainingFraction: fractions[index], accent: indicator.accent, colors: indicator.quotaColors)
-                ZStack(alignment: .leading) {
+        // Tracks and outline sit behind the fills, sharing one outer mask.
+        return ZStack {
+            VStack(spacing: spacing) {
+                ForEach(fractions.indices, id: \.self) { _ in
                     Rectangle()
                         .fill(Color.quotaTrack(opacity: opacity))
-                    if fractions.count == 1 {
-                        if fractions[index] > 0 {
-                            Capsule()
-                                .fill(color.opacity(opacity))
-                                .frame(width: size.width, height: stripHeight)
-                                .offset(x: size.width * (fractions[index] - 1))
-                        }
-                    } else {
-                        Rectangle()
-                            .fill(color.opacity(opacity))
-                            .frame(width: size.width * fractions[index])
-                    }
+                        .frame(width: size.width, height: stripHeight)
                 }
-                .frame(width: size.width, height: stripHeight)
+            }
+            Capsule()
+                .strokeBorder(Color.quotaOutline(opacity: opacity), lineWidth: 1 / displayScale)
+            VStack(spacing: spacing) {
+                ForEach(fractions.indices, id: \.self) { index in
+                    let color = Color.quota(remainingFraction: fractions[index], accent: indicator.accent, colors: indicator.quotaColors)
+                    ZStack(alignment: .leading) {
+                        if fractions.count == 1 {
+                            if fractions[index] > 0 {
+                                Capsule()
+                                    .fill(color.opacity(opacity))
+                                    .frame(width: size.width, height: stripHeight)
+                                    .offset(x: size.width * (fractions[index] - 1))
+                            }
+                        } else {
+                            Rectangle()
+                                .fill(color.opacity(opacity))
+                                .frame(width: size.width * fractions[index])
+                        }
+                    }
+                    .frame(width: size.width, height: stripHeight, alignment: .leading)
+                }
             }
         }
         .frame(width: size.width, height: barHeight)
         .clipShape(Capsule())
-        .overlay {
-            Capsule()
-                .strokeBorder(Color.quotaOutline(opacity: opacity), lineWidth: 1 / displayScale)
-        }
         .offset(y: topInset)
         .frame(width: size.width, height: size.height, alignment: .top)
     }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-13
+
+- Give quota windows more separation when fewer subscriptions are visible: three physical pixels for one subscription, two for two, and one for three.
+- Draw quota fills in front of the outline in the menu bar and popover.
+- Add Heart to the built-in subscription symbols.
+- Change the macOS bundle identifier to `es.tuschy.burnbar`; the existing configuration location is unchanged.
+
 ## 0.2.0 — 2026-10-13
 
 - Show each subscription's quota windows as separate fills inside one menu bar capsule, ordered from shortest to longest.

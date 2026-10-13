@@ -10,6 +10,7 @@ private extension SubscriptionSymbol {
         case .bolt: "Bolt"
         case .star: "Star"
         case .flame: "Flame"
+        case .heart: "Heart"
         }
     }
 }

@@ -1,13 +1,13 @@
 #!/bin/bash
 # Usage: Scripts/build-app.sh [install-directory]
-# BURNBAR_VERSION=0.2.0 BURNBAR_BUILD=1 BURNBAR_ARCH=native|universal|arm64|x86_64
+# BURNBAR_VERSION=0.3.0 BURNBAR_BUILD=1 BURNBAR_ARCH=native|universal|arm64|x86_64
 # CODESIGN_IDENTITY defaults to ad-hoc (-). An explicit certificate must exist.
 # BURNBAR_HARDENED_RUNTIME=1 enables the runtime and timestamp for release signing.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 install_dir="${1:-/Applications}"
-version="${BURNBAR_VERSION:-0.2.0}"
+version="${BURNBAR_VERSION:-0.3.0}"
 build="${BURNBAR_BUILD:-1}"
 architecture="${BURNBAR_ARCH:-native}"
 identity="${CODESIGN_IDENTITY--}"
@@ -103,7 +103,7 @@ cat > "$staged_app/Contents/Info.plist" <<PLIST
     <key>CFBundleDisplayName</key><string>Burnbar</string>
     <key>CFBundleExecutable</key><string>Burnbar</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
-    <key>CFBundleIdentifier</key><string>com.mindthefish.burnbar</string>
+    <key>CFBundleIdentifier</key><string>es.tuschy.burnbar</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>$version</string>
     <key>CFBundleVersion</key><string>$build</string>
