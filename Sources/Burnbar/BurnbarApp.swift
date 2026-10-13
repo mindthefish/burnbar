@@ -301,11 +301,6 @@ private struct PopoverQuotaCardView: View {
                 }
             }
 
-            if let date = card.lastSuccessfulUpdate {
-                Text("updated \(date, style: .relative) ago")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
             switch card.state {
             case .available, .stale:
                 ForEach(Array(card.windows.enumerated()), id: \.offset) { _, window in
